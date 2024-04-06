@@ -1,6 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
+
 #include "LostSoulCharacter.h"
+#include "Interface/InteractInterface.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -103,4 +105,12 @@ void ALostSoulCharacter::Look(const FInputActionValue& Value)
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
 	}
+}
+
+void ALostSoulCharacter::InteractWithChest()
+{
+    FVector Start = GetFollowCamera()->GetComponentLocation();
+
+
+
 }

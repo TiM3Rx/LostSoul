@@ -36,8 +36,6 @@
 *.xcworkspace
 *.sln
 *.suo
-*.opensdf
-*.sdf
 *.VC.db
 *.VC.opendb
 
