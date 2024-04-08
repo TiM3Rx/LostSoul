@@ -3,6 +3,8 @@
 #include "Chest/Chest.h"
 #include "Components/SphereComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "LostSoul/LostSoulCharacter.h"
+#include "Weapon/BaseWeapon.h"
 
 AChest::AChest()
 {
@@ -38,6 +40,7 @@ void AChest::Interaction()
     {
         OpenChest();
         ChestsOpened[ChestIndex] = true;
+        bIsOpened = true;
     }
 }
 
@@ -58,6 +61,29 @@ void AChest::OpenChest()
     IsInteracted = true;
     RunningTime = 0.0f;
     GetWorldTimerManager().SetTimer(OpenTimerHandle, this, &AChest::SetLidRotation, OpenDuration, true);
+
+    if (bIsOpened)
+    {
+        SpawnWeapon();
+    }
+}
+
+void AChest::SpawnWeapon()
+{
+    if (WeaponToSpawn)
+    {
+        FActorSpawnParameters SpawnParams;
+        SpawnParams.Owner = this;
+
+        ABaseWeapon* NewWeapon = GetWorld()->SpawnActor<ABaseWeapon>(WeaponToSpawn, GetActorLocation(), GetActorRotation(), SpawnParams);
+
+        ALostSoulCharacter* LostSoulCharacter =
+            Cast<ALostSoulCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
+        if (LostSoulCharacter && NewWeapon)
+        {
+            NewWeapon->AttachToComponent(LostSoulCharacter->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, "RightHandSocket");
+        }
+    }
 }
 
 void AChest::SetLidRotation() 
