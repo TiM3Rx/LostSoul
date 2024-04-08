@@ -12,6 +12,7 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "Chest/Chest.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -58,6 +59,22 @@ void ALostSoulCharacter::BeginPlay()
 	}
 }
 
+AActor* ALostSoulCharacter::GetInteractableObject() const
+{
+    TArray<AActor*> OverlappingActors;
+    GetOverlappingActors(OverlappingActors);
+
+    for (AActor* Actor : OverlappingActors)
+    {
+        if (Actor && Actor->GetClass()->ImplementsInterface(UInteractInterface::StaticClass()))
+        {
+            return Actor;  
+        }
+    }
+
+    return nullptr;
+}
+
 void ALostSoulCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
@@ -71,6 +88,10 @@ void ALostSoulCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ALostSoulCharacter::Look);
+
+		//Interact
+        EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Triggered, this, &ALostSoulCharacter::Interact);
+
 	}
 	else
 	{
@@ -107,10 +128,24 @@ void ALostSoulCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
-void ALostSoulCharacter::InteractWithChest()
+void ALostSoulCharacter::Interact(const FInputActionValue& Value)
 {
-    FVector Start = GetFollowCamera()->GetComponentLocation();
+    if (LastInteractedChest)
+    {
+        return;
+    }
 
+    AActor* InteractableObject = GetInteractableObject();
 
-
+    if (InteractableObject && InteractableObject->IsA<AChest>())
+    {
+        AChest* InteractedChest = Cast<AChest>(InteractableObject);
+        if (InteractedChest)
+        {
+            InteractedChest->Interaction();
+            LastInteractedChest = InteractedChest; 
+        }
+    }
+    LastInteractedChest = nullptr;
 }
+

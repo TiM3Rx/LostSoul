@@ -18,6 +18,6 @@ class LOSTSOUL_API IInteractInterface
 
 public:
     
-    virtual void Interact() {}
+    virtual void Interaction() = 0;
 
 };
