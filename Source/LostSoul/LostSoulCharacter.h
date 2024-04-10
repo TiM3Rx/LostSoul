@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
+#include "Character/CharacterType.h"
 #include "LostSoulCharacter.generated.h"
 
 class USpringArmComponent;
@@ -20,6 +21,14 @@ UCLASS(config = Game)
 class ALostSoulCharacter : public ACharacter
 {
     GENERATED_BODY()
+
+public:
+    ALostSoulCharacter();
+
+    FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+    FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+    FORCEINLINE ECharacterState GetCharacterState() const { return CharacterState; }
 
 protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -43,31 +52,21 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
     UInputAction* InteractAction;
 
-public:
-    ALostSoulCharacter();
-
-    FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-    FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
-
-protected:
-    void Move(const FInputActionValue& Value);
-
-    void Look(const FInputActionValue& Value);
-
-    void Interact(const FInputActionValue& Value);
-
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interact", meta = (AllowPrivateAccess = "true"))
     TArray<AChest*> Chests;
 
     UPROPERTY(BlueprintReadOnly, Category = "Interact")
     AChest* LastInteractedChest;
 
-    virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+    void Move(const FInputActionValue& Value);
+    void Look(const FInputActionValue& Value);
+    void Interact(const FInputActionValue& Value);
 
+    virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
     virtual void BeginPlay();
 
 private:
-
     AActor* GetInteractableObject() const;
 
+    ECharacterState CharacterState = ECharacterState::ECS_Unequipped;
 };
