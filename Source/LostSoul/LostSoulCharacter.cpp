@@ -12,7 +12,8 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "Chest/Chest.h"
-
+#include "Animation/AnimMontage.h"
+#include "Weapon/BaseWeapon.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -74,6 +75,25 @@ AActor* ALostSoulCharacter::GetInteractableObject() const
     return nullptr;
 }
 
+bool ALostSoulCharacter::CanAttack()
+{
+    return ActionState == EActionState::EAS_Unoccupied &&  //
+           CharacterState != ECharacterState::ECS_Unequipped;
+}
+
+bool ALostSoulCharacter::CanDisarm()
+{
+    return ActionState == EActionState::EAS_Unoccupied &&  //
+           CharacterState != ECharacterState::ECS_Unequipped;
+}
+
+bool ALostSoulCharacter::CanArm()
+{
+    return ActionState == EActionState::EAS_Unoccupied &&        //
+           CharacterState == ECharacterState::ECS_Unequipped &&  //
+           EquippedWeapon;
+}
+
 void ALostSoulCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
     if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
@@ -91,6 +111,12 @@ void ALostSoulCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
         // Interact
         EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Triggered, this, &ALostSoulCharacter::Interact);
+
+        // Attack
+        EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &ALostSoulCharacter::Attack);
+
+        // Equip
+        EnhancedInputComponent->BindAction(EquipAction, ETriggerEvent::Triggered, this, &ALostSoulCharacter::Equip);
     }
     else
     {
@@ -105,6 +131,7 @@ void ALostSoulCharacter::Move(const FInputActionValue& Value)
 {
     FVector2D MovementVector = Value.Get<FVector2D>();
 
+    if (ActionState == EActionState::EAS_Attacking) return;
     if (Controller != nullptr)
     {
         const FRotator Rotation = Controller->GetControlRotation();
@@ -132,6 +159,7 @@ void ALostSoulCharacter::Look(const FInputActionValue& Value)
 
 void ALostSoulCharacter::Interact(const FInputActionValue& Value)
 {
+    if (ActionState == EActionState::EAS_Attacking) return;
     if (LastInteractedChest)
     {
         return;
@@ -148,7 +176,64 @@ void ALostSoulCharacter::Interact(const FInputActionValue& Value)
             LastInteractedChest = InteractedChest;
 
             CharacterState = ECharacterState::ECS_EquippedOneHandedWeapon;
+            EquippedWeapon = InteractedChest->GetSpawnedWeapon();
         }
     }
     LastInteractedChest = nullptr;
+}
+
+void ALostSoulCharacter::Attack(const FInputActionValue& Value)
+{
+
+    if (CanAttack())
+    {
+        PlayAttackMontage();
+        ActionState = EActionState::EAS_Attacking;
+    }
+}
+
+void ALostSoulCharacter::Equip(const FInputActionValue& Value)
+{
+    if (CanDisarm())
+    {
+        PlayEquipMontage(FName("Unequip"));
+        CharacterState = ECharacterState::ECS_Unequipped;
+        EquippedWeapon = nullptr;
+    }
+    else if (CanArm())
+    {
+        PlayEquipMontage(FName("Equip"));
+        CharacterState = ECharacterState::ECS_EquippedOneHandedWeapon;
+    }
+}
+
+void ALostSoulCharacter::PlayAttackMontage()
+{
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    if (!AnimInstance && !AttackMontage) return;
+
+    AnimInstance->Montage_Play(AttackMontage);
+    const int32 Selection = FMath::RandRange(0, 1);
+    FName SectionName = FName();
+
+    switch (Selection)
+    {
+        case 0: SectionName = FName("Attack1"); break;
+        case 1: SectionName = FName("Attack2"); break;
+    }
+    AnimInstance->Montage_JumpToSection(SectionName, AttackMontage);
+}
+
+void ALostSoulCharacter::PlayEquipMontage(FName SectionName)
+{
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    if (!AnimInstance && !EquipMontage) return;
+
+    AnimInstance->Montage_Play(EquipMontage);
+    AnimInstance->Montage_JumpToSection(SectionName, EquipMontage);
+}
+
+void ALostSoulCharacter::AttackEnd()
+{
+    ActionState = EActionState::EAS_Unoccupied;
 }

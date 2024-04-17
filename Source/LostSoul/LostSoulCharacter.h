@@ -13,6 +13,8 @@ class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
 class AChest;
+class UAnimMontage;
+class ABaseWeapon;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -28,7 +30,7 @@ public:
     FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
     FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
-    FORCEINLINE ECharacterState GetCharacterState() const { return CharacterState; }
+    FORCEINLINE ECharacterState GetCharacterState() { return CharacterState; }
 
 protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -52,6 +54,12 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
     UInputAction* InteractAction;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+    UInputAction* AttackAction;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+    UInputAction* EquipAction;
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interact", meta = (AllowPrivateAccess = "true"))
     TArray<AChest*> Chests;
 
@@ -61,12 +69,36 @@ protected:
     void Move(const FInputActionValue& Value);
     void Look(const FInputActionValue& Value);
     void Interact(const FInputActionValue& Value);
+    void Attack(const FInputActionValue& Value);
+    void Equip(const FInputActionValue& Value);
+
+    void PlayAttackMontage();
+    void PlayEquipMontage(FName SectionName);
+
+    UFUNCTION()
+    void AttackEnd();
 
     virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
     virtual void BeginPlay();
 
 private:
+    UPROPERTY(EditDefaultsOnly, Category = "Montage")
+    UAnimMontage* AttackMontage;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Montage")
+    UAnimMontage* EquipMontage;
+
+    UPROPERTY(VisibleAnywhere, Category = "Weapon")
+    ABaseWeapon* EquippedWeapon;
+
     AActor* GetInteractableObject() const;
 
     ECharacterState CharacterState = ECharacterState::ECS_Unequipped;
+
+    UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
+    EActionState ActionState = EActionState::EAS_Unoccupied;
+
+    bool CanAttack();
+    bool CanDisarm();
+    bool CanArm();
 };

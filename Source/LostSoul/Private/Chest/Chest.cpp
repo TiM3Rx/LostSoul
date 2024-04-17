@@ -76,6 +76,7 @@ void AChest::SpawnWeapon()
         SpawnParams.Owner = this;
 
         ABaseWeapon* NewWeapon = GetWorld()->SpawnActor<ABaseWeapon>(WeaponToSpawn, GetActorLocation(), GetActorRotation(), SpawnParams);
+        SpawnedWeapon = NewWeapon;
 
         ALostSoulCharacter* LostSoulCharacter =
             Cast<ALostSoulCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));

@@ -21,6 +21,8 @@ public:
     virtual void Interaction() override;
     virtual void Tick(float DeltaTime) override;
 
+    ABaseWeapon* GetSpawnedWeapon() const { return SpawnedWeapon; }
+
 protected:
     virtual void BeginPlay() override;
 
@@ -47,7 +49,9 @@ protected:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     bool bIsOpened = false;
+    
 
+    ABaseWeapon* SpawnedWeapon;
 
 private:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
