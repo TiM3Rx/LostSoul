@@ -5,6 +5,7 @@
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/BoxComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
@@ -43,6 +44,14 @@ ALostSoulCharacter::ALostSoulCharacter()
     FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
     FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
     FollowCamera->bUsePawnControlRotation = false;
+}
+
+void ALostSoulCharacter::SetWeaponCollisionEnabled(ECollisionEnabled::Type CollisionEnabled)
+{
+    if (EquippedWeapon && EquippedWeapon->GetWeaponBox())
+    {
+        EquippedWeapon->GetWeaponBox()->SetCollisionEnabled(CollisionEnabled);
+    }
 }
 
 void ALostSoulCharacter::BeginPlay()
@@ -131,7 +140,7 @@ void ALostSoulCharacter::Move(const FInputActionValue& Value)
 {
     FVector2D MovementVector = Value.Get<FVector2D>();
 
-    if (ActionState == EActionState::EAS_Attacking) return;
+    if (ActionState != EActionState::EAS_Unoccupied) return;
     if (Controller != nullptr)
     {
         const FRotator Rotation = Controller->GetControlRotation();
@@ -198,11 +207,13 @@ void ALostSoulCharacter::Equip(const FInputActionValue& Value)
     {
         PlayEquipMontage(FName("Unequip"));
         CharacterState = ECharacterState::ECS_Unequipped;
+        ActionState = EActionState::EAS_EquippingWeapon;
     }
     else if (CanArm())
     {
         PlayEquipMontage(FName("Equip"));
         CharacterState = ECharacterState::ECS_EquippedOneHandedWeapon;
+        ActionState = EActionState::EAS_EquippingWeapon;
     }
 }
 
@@ -252,4 +263,9 @@ void ALostSoulCharacter::Arm()
     FAttachmentTransformRules TransformRules(EAttachmentRule::SnapToTarget, true);
     EquippedWeapon->AttachToComponent(GetMesh(), TransformRules, FName("RightHandSocket"));
     CharacterState = ECharacterState::ECS_EquippedOneHandedWeapon;
+}
+
+void ALostSoulCharacter::FinishEquipping()
+{
+    ActionState = EActionState::EAS_Unoccupied;
 }

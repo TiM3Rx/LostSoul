@@ -27,6 +27,10 @@ class ALostSoulCharacter : public ACharacter
 public:
     ALostSoulCharacter();
 
+    UFUNCTION(BlueprintCallable)
+    void SetWeaponCollisionEnabled(ECollisionEnabled::Type CollisionEnabled);
+
+
     FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
     FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
@@ -83,6 +87,9 @@ protected:
 
     UFUNCTION(BlueprintCallable)
     void Arm();
+    
+    UFUNCTION(BlueprintCallable)
+    void FinishEquipping();
 
     virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
     virtual void BeginPlay();
