@@ -4,10 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Interface/HitInterface.h"
 #include "Enemy.generated.h"
 
+class UAnimMontage;
+
 UCLASS()
-class LOSTSOUL_API AEnemy : public ACharacter
+class LOSTSOUL_API AEnemy : public ACharacter, public IHitInterface
 {
     GENERATED_BODY()
 
@@ -17,6 +20,23 @@ public:
 
     virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+    virtual void GetHit(const FVector& ImpactPoint) override;
+
 protected:
     virtual void BeginPlay() override;
+
+    void PlayHitReactMontage(const FName SectionName);
+
+private:
+    UPROPERTY(EditDefaultsOnly, Category = "Montage")
+    UAnimMontage* HitReactMontage;
+
+    UPROPERTY(EditAnywhere, Category = "Sounds")
+    USoundBase* HitSound;
+
+    UPROPERTY(EditAnywhere, Category = "VFX")
+    UParticleSystem* HitParticles; 
+
+    void DirectionalHitReact(const FVector& ImpactPoint);
+
 };

@@ -5,6 +5,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Components/BoxComponent.h"
+#include "Interface/HitInterface.h"
 
 ABaseWeapon::ABaseWeapon()
 {
@@ -32,21 +33,21 @@ ABaseWeapon::ABaseWeapon()
 void ABaseWeapon::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp,
     int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-    const FString OtherActorName = OtherActor->GetName();
+    /*const FString OtherActorName = OtherActor->GetName();
     if (GEngine)
     {
         GEngine->AddOnScreenDebugMessage(1, 30.f, FColor::Red, OtherActorName);
-    }
+    }*/
 }
 
 void ABaseWeapon::OnSphereEndOverlap(
     UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-    const FString OtherActorName = FString("Ending Overlap with: ") + OtherActor->GetName();
+    /*const FString OtherActorName = FString("Ending Overlap with: ") + OtherActor->GetName();
     if (GEngine)
     {
         GEngine->AddOnScreenDebugMessage(1, 30.f, FColor::Blue, OtherActorName);
-    }
+    }*/
 }
 
 void ABaseWeapon::OnBoxOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp,
@@ -57,19 +58,32 @@ void ABaseWeapon::OnBoxOverlap(UPrimitiveComponent* OverlappedComponent, AActor*
 
     TArray<AActor*> ActorsToIgnore;
     ActorsToIgnore.Add(this);
-    FHitResult BoxHit;
 
+    for (AActor* Actor : IgnoreActors)
+    {
+        ActorsToIgnore.AddUnique(Actor);
+    }
+
+    FHitResult BoxHit;
     UKismetSystemLibrary::BoxTraceSingle(this,  //
         Start,                                  //
         End,                                    //
-        FVector(5.0f, 5.0f, 5.f),               //
+        FVector(5.f, 5.f, 5.f),                 //
         BoxTraceStart->GetComponentRotation(),  //
         ETraceTypeQuery::TraceTypeQuery1,       //
-        false,                                  //
-        ActorsToIgnore,                         //
-        EDrawDebugTrace::ForDuration,           //
+        false, ActorsToIgnore,                  //
+        EDrawDebugTrace::None,                  //
         BoxHit,                                 //
         true);
+    if (BoxHit.GetActor())
+    {
+        IHitInterface* HitInterface = Cast<IHitInterface>(BoxHit.GetActor());
+        if (HitInterface)
+        {
+            HitInterface->GetHit(BoxHit.ImpactPoint);
+        }
+        IgnoreActors.AddUnique(BoxHit.GetActor());
+    }
 }
 
 void ABaseWeapon::BeginPlay()

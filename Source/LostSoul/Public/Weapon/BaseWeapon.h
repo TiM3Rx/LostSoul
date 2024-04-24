@@ -16,7 +16,6 @@ enum class EWeaponState : uint8
     EWS_Equipped
 };
 
-
 UCLASS()
 class LOSTSOUL_API ABaseWeapon : public AActor
 {
@@ -26,6 +25,8 @@ public:
     ABaseWeapon();
 
     virtual void Tick(float DeltaTime) override;
+
+    TArray<AActor*> IgnoreActors;
 
     FORCEINLINE UBoxComponent* GetWeaponBox() const { return WeaponBox; }
 
@@ -51,8 +52,6 @@ protected:
     virtual void BeginPlay() override;
 
     void Equip();
-
-
 
 private:
     UPROPERTY(EditAnywhere, Category = "WeaponProperties")

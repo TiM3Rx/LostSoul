@@ -51,6 +51,7 @@ void ALostSoulCharacter::SetWeaponCollisionEnabled(ECollisionEnabled::Type Colli
     if (EquippedWeapon && EquippedWeapon->GetWeaponBox())
     {
         EquippedWeapon->GetWeaponBox()->SetCollisionEnabled(CollisionEnabled);
+        EquippedWeapon->IgnoreActors.Empty();
     }
 }
 
@@ -234,7 +235,7 @@ void ALostSoulCharacter::PlayAttackMontage()
     AnimInstance->Montage_JumpToSection(SectionName, AttackMontage);
 }
 
-void ALostSoulCharacter::PlayEquipMontage(FName SectionName)
+void ALostSoulCharacter::PlayEquipMontage(const FName SectionName)
 {
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
     if (!AnimInstance && !EquipMontage) return;

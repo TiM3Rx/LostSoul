@@ -7,9 +7,7 @@
 #include "Character/CharacterType.h"
 #include "LSAnimInstance.generated.h"
 
-/**
- *
- */
+
 UCLASS()
 class LOSTSOUL_API ULSAnimInstance : public UAnimInstance
 {

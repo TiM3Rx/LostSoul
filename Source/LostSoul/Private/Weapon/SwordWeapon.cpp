@@ -9,12 +9,12 @@ void ASwordWeapon::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AAc
 {
     Super::OnSphereOverlap(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
 
-    ALostSoulCharacter* LostSoulCharacter = Cast<ALostSoulCharacter>(OtherActor);
+    //ALostSoulCharacter* LostSoulCharacter = Cast<ALostSoulCharacter>(OtherActor);
 
-    if (!LostSoulCharacter) return;
+    //if (!LostSoulCharacter) return;
 
-    FAttachmentTransformRules TransformRules(EAttachmentRule::SnapToTarget, true);
-    WeaponMesh->AttachToComponent(LostSoulCharacter->GetMesh(), TransformRules, FName("RightHandSocket"));
+    ////FAttachmentTransformRules TransformRules(EAttachmentRule::SnapToTarget, true);
+    ////WeaponMesh->AttachToComponent(LostSoulCharacter->GetMesh(), TransformRules, FName("RightHandSocket"));
 }
 
 void ASwordWeapon::OnSphereEndOverlap(

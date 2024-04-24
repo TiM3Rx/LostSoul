@@ -77,7 +77,7 @@ protected:
     void Equip(const FInputActionValue& Value);
 
     void PlayAttackMontage();
-    void PlayEquipMontage(FName SectionName);
+    void PlayEquipMontage(const FName SectionName);
 
     UFUNCTION()
     void AttackEnd();
