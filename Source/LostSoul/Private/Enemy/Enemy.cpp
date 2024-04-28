@@ -3,9 +3,11 @@
 #include "Enemy/Enemy.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/AttributeComponent.h"
 #include "Animation/AnimMontage.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/GameplayStatics.h"
+#include "HUD/HealthBarComponent.h"
 
 AEnemy::AEnemy()
 {
@@ -17,11 +19,21 @@ AEnemy::AEnemy()
     GetMesh()->SetGenerateOverlapEvents(true);
 
     GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+
+    Attributes = CreateDefaultSubobject<UAttributeComponent>(TEXT("Attributes"));
+    HealthBarWidget = CreateDefaultSubobject<UHealthBarComponent>(TEXT("HealthBar"));
+    HealthBarWidget->SetupAttachment(GetRootComponent());
 }
 
 void AEnemy::BeginPlay()
 {
     Super::BeginPlay();
+
+    if (HealthBarWidget)
+    {
+        HealthBarWidget->SetHealthPercent(1.0f);
+    }
+
 }
 
 void AEnemy::PlayHitReactMontage(const FName SectionName)
@@ -50,10 +62,10 @@ void AEnemy::DirectionalHitReact(const FVector& ImpactPoint)
         Theta *= -1.0f;
     }
 
-    if (GEngine)
+    /*if (GEngine)
     {
         GEngine->AddOnScreenDebugMessage(1, 5.0f, FColor::Green, FString::Printf(TEXT("Theta: %f"), Theta));
-    }
+    }*/
 
     FName Section("ReactFromBack");
     if (Theta >= -45.f && Theta < 45.f)
@@ -84,7 +96,7 @@ void AEnemy::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
     Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
 
-void AEnemy::GetHit(const FVector& ImpactPoint)
+void AEnemy::GetHit_Implementation(const FVector& ImpactPoint)
 {
     //DrawDebugSphere(GetWorld(), ImpactPoint, 8.f, 12, FColor::Blue, false, 5.f);
 

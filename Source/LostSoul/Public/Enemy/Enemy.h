@@ -8,6 +8,8 @@
 #include "Enemy.generated.h"
 
 class UAnimMontage;
+class UAttributeComponent;
+class UHealthBarComponent;
 
 UCLASS()
 class LOSTSOUL_API AEnemy : public ACharacter, public IHitInterface
@@ -20,7 +22,7 @@ public:
 
     virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-    virtual void GetHit(const FVector& ImpactPoint) override;
+    virtual void GetHit_Implementation(const FVector& ImpactPoint) override;
 
 protected:
     virtual void BeginPlay() override;
@@ -35,8 +37,13 @@ private:
     USoundBase* HitSound;
 
     UPROPERTY(EditAnywhere, Category = "VFX")
-    UParticleSystem* HitParticles; 
+    UParticleSystem* HitParticles;
+
+    UPROPERTY(VisibleAnywhere, Category = "Components")
+    UAttributeComponent* Attributes;
+
+    UPROPERTY(VisibleAnywhere, Category = "Components")
+    UHealthBarComponent* HealthBarWidget;
 
     void DirectionalHitReact(const FVector& ImpactPoint);
-
 };
