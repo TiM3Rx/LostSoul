@@ -2,9 +2,9 @@
 
 #include "Weapon/BaseWeapon.h"
 #include "Components/SphereComponent.h"
+#include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "Components/BoxComponent.h"
 #include "Interface/HitInterface.h"
 
 ABaseWeapon::ABaseWeapon()
@@ -77,6 +77,12 @@ void ABaseWeapon::OnBoxOverlap(UPrimitiveComponent* OverlappedComponent, AActor*
         true);
     if (BoxHit.GetActor())
     {
+        UGameplayStatics::ApplyDamage(BoxHit.GetActor(),  //
+            Damage,                                       //
+            GetInstigatorController(),                    //
+            this,                                         //
+            UDamageType::StaticClass());
+
         IHitInterface* HitInterface = Cast<IHitInterface>(BoxHit.GetActor());
         if (HitInterface)
         {

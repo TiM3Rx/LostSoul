@@ -28,12 +28,53 @@ AEnemy::AEnemy()
 void AEnemy::BeginPlay()
 {
     Super::BeginPlay();
+    if (!HealthBarWidget) return;
+    HealthBarWidget->SetVisibility(false);
+}
 
-    if (HealthBarWidget)
+void AEnemy::Die()
+{
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    if (AnimInstance && DeathMontage)
     {
-        HealthBarWidget->SetHealthPercent(1.0f);
-    }
+        AnimInstance->Montage_Play(DeathMontage);
+        const int32 Selection = FMath::RandRange(0, 5);
+        FName SectionName = FName();
 
+        switch (Selection)
+        {
+            case 0:
+                SectionName = FName("Death1");
+                DeathPose = EDeathPose::EAS_Death1;
+                break;
+            case 1:
+                SectionName = FName("Death2");
+                DeathPose = EDeathPose::EAS_Death2;
+                break;
+            case 2:
+                SectionName = FName("Death3");
+                DeathPose = EDeathPose::EAS_Death3;
+                break;
+            case 3:
+                SectionName = FName("Death4");
+                DeathPose = EDeathPose::EAS_Death4;
+                break;
+            case 4:
+                SectionName = FName("Death5");
+                DeathPose = EDeathPose::EAS_Death5;
+                break;
+            case 5:
+                SectionName = FName("Death6");
+                DeathPose = EDeathPose::EAS_Death6;
+                break;
+        }
+        AnimInstance->Montage_JumpToSection(SectionName, DeathMontage);
+    }
+    if (!HealthBarWidget) return;
+    HealthBarWidget->SetVisibility(false);
+
+    GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    SetLifeSpan(5.0f);
 }
 
 void AEnemy::PlayHitReactMontage(const FName SectionName)
@@ -82,14 +123,28 @@ void AEnemy::DirectionalHitReact(const FVector& ImpactPoint)
     }
     PlayHitReactMontage(Section);
 
-    //UKismetSystemLibrary::DrawDebugArrow(this, GetActorLocation(), GetActorLocation() + Forward * 60.0f, 4.0f, FColor::Red, 5.0f);
-    //UKismetSystemLibrary::DrawDebugArrow(this, GetActorLocation(), GetActorLocation() + ToHit * 60.0f, 4.0f, FColor::Green, 5.0f);
-    //UKismetSystemLibrary::DrawDebugArrow(this, GetActorLocation(), GetActorLocation() + CrossProduct * 100.0f, 4.0f, FColor::Blue, 5.0f);
+    // UKismetSystemLibrary::DrawDebugArrow(this, GetActorLocation(), GetActorLocation() + Forward * 60.0f, 4.0f, FColor::Red, 5.0f);
+    // UKismetSystemLibrary::DrawDebugArrow(this, GetActorLocation(), GetActorLocation() + ToHit * 60.0f, 4.0f, FColor::Green, 5.0f);
+    // UKismetSystemLibrary::DrawDebugArrow(this, GetActorLocation(), GetActorLocation() + CrossProduct * 100.0f, 4.0f, FColor::Blue, 5.0f);
 }
 
 void AEnemy::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
+
+    if (CombatTarget)
+    {
+        const double DistanceToTarget = (CombatTarget->GetActorLocation() - GetActorLocation()).Size();
+        if (DistanceToTarget > CombatRadius)
+        {
+            CombatTarget = nullptr;
+            if (HealthBarWidget)
+            {
+                HealthBarWidget->SetVisibility(false);
+            }
+        }
+    }
+
 }
 void AEnemy::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -98,9 +153,20 @@ void AEnemy::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void AEnemy::GetHit_Implementation(const FVector& ImpactPoint)
 {
-    //DrawDebugSphere(GetWorld(), ImpactPoint, 8.f, 12, FColor::Blue, false, 5.f);
+    // DrawDebugSphere(GetWorld(), ImpactPoint, 8.f, 12, FColor::Blue, false, 5.f);
+    if (HealthBarWidget)
+    {
+        HealthBarWidget->SetVisibility(true);
+    }
 
-    DirectionalHitReact(ImpactPoint);
+    if (Attributes && Attributes->IsAlive())
+    {
+        DirectionalHitReact(ImpactPoint);
+    }
+    else
+    {
+        Die();
+    }
 
     if (HitSound)
     {
@@ -114,4 +180,18 @@ void AEnemy::GetHit_Implementation(const FVector& ImpactPoint)
             HitParticles,                                     //
             ImpactPoint);
     }
+}
+
+float AEnemy::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+    if (Attributes)
+    {
+        Attributes->ReceiveDamage(Damage);
+        if (HealthBarWidget)
+        {
+            HealthBarWidget->SetHealthPercent(Attributes->GetHealthPercent());
+        }
+    }
+    CombatTarget = DamageCauser;
+    return Damage;
 }

@@ -184,10 +184,12 @@ void ALostSoulCharacter::Interact(const FInputActionValue& Value)
         {
             InteractedChest->Interaction();
             LastInteractedChest = InteractedChest;
-
+            
             CharacterState = ECharacterState::ECS_EquippedOneHandedWeapon;
             EquippedWeapon = InteractedChest->GetSpawnedWeapon();
         }
+        /*InteractedChest->GetSpawnedWeapon()->SetOwner(this);
+        InteractedChest->GetSpawnedWeapon()->SetInstigator(this);*/
     }
     LastInteractedChest = nullptr;
 }

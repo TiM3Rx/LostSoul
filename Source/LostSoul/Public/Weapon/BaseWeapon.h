@@ -63,6 +63,9 @@ private:
     UPROPERTY(VisibleAnywhere, Category = "WeaponProperties")
     UBoxComponent* WeaponBox;
 
+    UPROPERTY(EditAnywhere, Category = "WeaponProperties")
+    float Damage = 20.0f;
+
     UPROPERTY(VisibleAnywhere)
     USceneComponent* BoxTraceStart;
 
