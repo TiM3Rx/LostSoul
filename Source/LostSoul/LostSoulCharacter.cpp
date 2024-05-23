@@ -1,11 +1,10 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Developer Dmytro Alokhin
 
 #include "LostSoulCharacter.h"
 #include "Interface/InteractInterface.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
-#include "Components/BoxComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
@@ -14,7 +13,6 @@
 #include "InputActionValue.h"
 #include "Chest/Chest.h"
 #include "Animation/AnimMontage.h"
-#include "Weapon/BaseWeapon.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -46,18 +44,11 @@ ALostSoulCharacter::ALostSoulCharacter()
     FollowCamera->bUsePawnControlRotation = false;
 }
 
-void ALostSoulCharacter::SetWeaponCollisionEnabled(ECollisionEnabled::Type CollisionEnabled)
-{
-    if (EquippedWeapon && EquippedWeapon->GetWeaponBox())
-    {
-        EquippedWeapon->GetWeaponBox()->SetCollisionEnabled(CollisionEnabled);
-        EquippedWeapon->IgnoreActors.Empty();
-    }
-}
-
 void ALostSoulCharacter::BeginPlay()
 {
     Super::BeginPlay();
+
+    Tags.Add(FName("LostSoulCharacter"));
 
     if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
     {
@@ -123,7 +114,7 @@ void ALostSoulCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
         EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Triggered, this, &ALostSoulCharacter::Interact);
 
         // Attack
-        EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &ALostSoulCharacter::Attack);
+        EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &ALostSoulCharacter::Attacking);
 
         // Equip
         EnhancedInputComponent->BindAction(EquipAction, ETriggerEvent::Triggered, this, &ALostSoulCharacter::Equip);
@@ -194,9 +185,13 @@ void ALostSoulCharacter::Interact(const FInputActionValue& Value)
     LastInteractedChest = nullptr;
 }
 
-void ALostSoulCharacter::Attack(const FInputActionValue& Value)
+void ALostSoulCharacter::Attacking(const FInputActionValue& Value)
 {
+    Attack();
+}
 
+void ALostSoulCharacter::Attack()
+{
     if (CanAttack())
     {
         PlayAttackMontage();

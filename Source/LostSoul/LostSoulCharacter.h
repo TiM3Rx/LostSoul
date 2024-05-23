@@ -1,9 +1,9 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Developer Dmytro Alokhin
 
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Character.h"
+#include "Character/BaseCharacter.h"
 #include "Logging/LogMacros.h"
 #include "Character/CharacterType.h"
 #include "LostSoulCharacter.generated.h"
@@ -12,24 +12,19 @@ class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
-class AChest;
 class UAnimMontage;
-class ABaseWeapon;
+class AChest;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
 UCLASS(config = Game)
-class ALostSoulCharacter : public ACharacter
+class ALostSoulCharacter : public ABaseCharacter
 {
     GENERATED_BODY()
 
 public:
     ALostSoulCharacter();
-
-    UFUNCTION(BlueprintCallable)
-    void SetWeaponCollisionEnabled(ECollisionEnabled::Type CollisionEnabled);
-
 
     FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
     FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
@@ -73,14 +68,14 @@ protected:
     void Move(const FInputActionValue& Value);
     void Look(const FInputActionValue& Value);
     void Interact(const FInputActionValue& Value);
-    void Attack(const FInputActionValue& Value);
     void Equip(const FInputActionValue& Value);
+    void Attacking(const FInputActionValue& Value);
+    virtual void Attack() override;
 
-    void PlayAttackMontage();
     void PlayEquipMontage(const FName SectionName);
+    virtual void PlayAttackMontage() override;
 
-    UFUNCTION()
-    void AttackEnd();
+    virtual void AttackEnd() override;
 
     UFUNCTION(BlueprintCallable)
     void Disarm();
@@ -96,13 +91,7 @@ protected:
 
 private:
     UPROPERTY(EditDefaultsOnly, Category = "Montage")
-    UAnimMontage* AttackMontage;
-
-    UPROPERTY(EditDefaultsOnly, Category = "Montage")
     UAnimMontage* EquipMontage;
-
-    UPROPERTY(VisibleAnywhere, Category = "Weapon")
-    ABaseWeapon* EquippedWeapon;
 
     AActor* GetInteractableObject() const;
 
@@ -111,7 +100,7 @@ private:
     UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
     EActionState ActionState = EActionState::EAS_Unoccupied;
 
-    bool CanAttack();
     bool CanDisarm();
     bool CanArm();
+    virtual bool CanAttack() override;
 };

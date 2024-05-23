@@ -3,17 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Character.h"
-#include "Interface/HitInterface.h"
+#include "Character/BaseCharacter.h"
 #include "Character/CharacterType.h"
 #include "Enemy.generated.h"
 
-class UAnimMontage;
-class UAttributeComponent;
 class UHealthBarComponent;
+class UPawnSensingComponent;
 
 UCLASS()
-class LOSTSOUL_API AEnemy : public ACharacter, public IHitInterface
+class LOSTSOUL_API AEnemy : public ABaseCharacter
 {
     GENERATED_BODY()
 
@@ -34,6 +32,8 @@ public:
         AController* EventInstigator,            //
         AActor* DamageCauser) override;
 
+    virtual void Destroyed() override;
+
 
 protected:
     virtual void BeginPlay() override;
@@ -44,33 +44,31 @@ protected:
     UPROPERTY(EditAnywhere)
     double PatrolRadius = 200.0f;
 
+    UPROPERTY(EditAnywhere, Category = "EnemyMovement")
+    float ChasingSpeed = 300.0f;
+
+    UPROPERTY(EditAnywhere, Category = "EnemyMovement")
+    float PatrollingSpeed = 125.0f;
+
     bool InTargetRange(AActor* Target, double Radius);
 
-    void Die();
+    UFUNCTION()
+    void PawnSeen(APawn* SeenPawn);
 
-    void PlayHitReactMontage(const FName SectionName);
+    virtual void Attack() override;
+    virtual void PlayAttackMontage() override;
+
+    virtual void Die() override;
 
 private:
-    UPROPERTY(EditDefaultsOnly, Category = "Montage")
-    UAnimMontage* HitReactMontage;
-
-    UPROPERTY(EditDefaultsOnly, Category = "Montage")
-    UAnimMontage* DeathMontage;
-
-    UPROPERTY(EditAnywhere, Category = "Sounds")
-    USoundBase* HitSound;
-
-    UPROPERTY(EditAnywhere, Category = "VFX")
-    UParticleSystem* HitParticles;
-
-    UPROPERTY(VisibleAnywhere, Category = "Components")
-    UAttributeComponent* Attributes;
-
     UPROPERTY(VisibleAnywhere, Category = "Components")
     UHealthBarComponent* HealthBarWidget;
 
     UPROPERTY(EditAnywhere)
     double CombatRadius = 1000.0f;
+
+    UPROPERTY(EditAnywhere)
+    double AttackRadius = 150.0f;
 
     UPROPERTY()
     AActor* CombatTarget;
@@ -84,6 +82,9 @@ private:
     UPROPERTY(EditInstanceOnly, Category = "AI Navigation")
     TArray<AActor*> PatrolTargets; 
 
+    UPROPERTY(VisibleAnywhere)
+    UPawnSensingComponent* PawnSensing;
+
     FTimerHandle PatrolTimer;
 
     UPROPERTY(EditAnywhere, Category = "AI Navigation")
@@ -92,8 +93,12 @@ private:
     UPROPERTY(EditAnywhere, Category = "AI Navigation")
     float WaitMax = 10.f;
 
+    UPROPERTY(EditAnywhere)
+    TSubclassOf<class ABaseWeapon> WeaponClass;
+
+    EEnemyState EnemyState = EEnemyState::EES_Patrolling;
+
     void PatrolTimerFinished();
     void MoveToTarget(AActor* Target);
     AActor* ChoosePatrolTarget();
-    void DirectionalHitReact(const FVector& ImpactPoint);
 };

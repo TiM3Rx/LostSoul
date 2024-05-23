@@ -28,6 +28,8 @@ public:
 
     TArray<AActor*> IgnoreActors;
 
+    void Equip(USceneComponent* Parent, FName SocketName, AActor* NewOwner, APawn* NewInstigator);
+
     FORCEINLINE UBoxComponent* GetWeaponBox() const { return WeaponBox; }
 
 protected:
@@ -53,8 +55,6 @@ protected:
     void CreateFields(const FVector& FieldLocation);
 
     virtual void BeginPlay() override;
-
-    void Equip();
 
 private:
     UPROPERTY(EditAnywhere, Category = "WeaponProperties")

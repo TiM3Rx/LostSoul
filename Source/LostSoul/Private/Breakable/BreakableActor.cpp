@@ -2,7 +2,7 @@
 
 #include "Breakable/BreakableActor.h"
 #include "GeometryCollection/GeometryCollectionComponent.h"
-
+#include "Components/CapsuleComponent.h"
 
 ABreakableActor::ABreakableActor()
 {
@@ -13,8 +13,10 @@ ABreakableActor::ABreakableActor()
     GeometryCollection->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
     SetRootComponent(GeometryCollection);
 
-
-
+    Capsule = CreateDefaultSubobject<UCapsuleComponent>(TEXT("Capsule"));
+    Capsule->SetupAttachment(GetRootComponent());
+    Capsule->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+    Capsule->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Block);
 }
 
 void ABreakableActor::BeginPlay()
@@ -29,8 +31,14 @@ void ABreakableActor::Tick(float DeltaTime)
 
 void ABreakableActor::GetHit_Implementation(const FVector& ImpactPoint)
 {
+    if (bBroken) return;
+    bBroken = true;
+    UWorld* World = GetWorld();
+    if (World)
+    {
+        FVector Location = GetActorLocation();
+        Location.Z += 75.f;
 
-
-
-
+        World->SpawnActor<ABreakableActor>(Location, GetActorRotation());
+    }
 }

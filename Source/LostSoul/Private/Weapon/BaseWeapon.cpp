@@ -104,7 +104,7 @@ void ABaseWeapon::BeginPlay()
     WeaponBox->OnComponentBeginOverlap.AddDynamic(this, &ABaseWeapon::OnBoxOverlap);
 }
 
-void ABaseWeapon::Equip()
+void ABaseWeapon::Equip(USceneComponent* Parent, FName SocketName, AActor* NewOwner, APawn* NewInstigator)
 {
     WeaponState = EWeaponState::EWS_Equipped;
     if (EquipSound)
@@ -115,6 +115,12 @@ void ABaseWeapon::Equip()
     {
         Sphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     }
+
+    FAttachmentTransformRules TransformRules(EAttachmentRule::SnapToTarget, true);
+    AttachToComponent(Parent, TransformRules, SocketName);
+
+    SetOwner(NewOwner);
+    SetInstigator(NewInstigator);
 }
 
 void ABaseWeapon::Tick(float DeltaTime)

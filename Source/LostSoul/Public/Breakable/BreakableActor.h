@@ -24,7 +24,15 @@ public:
 protected:
     virtual void BeginPlay() override;
 
-private:
     UPROPERTY(VisibleAnywhere)
     UGeometryCollectionComponent* GeometryCollection;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+    class UCapsuleComponent* Capsule;
+
+private:
+    UPROPERTY(VisibleAnywhere, Category = "Pots")
+    int32 NumsOfPots = 3; 
+
+    bool bBroken = false;
 };
