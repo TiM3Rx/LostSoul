@@ -40,14 +40,6 @@ protected:
     USphereComponent* Sphere;
 
     UFUNCTION()
-    virtual void OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp,
-        int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
-    UFUNCTION()
-    virtual void OnSphereEndOverlap(
-        UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-
-    UFUNCTION()
     virtual void OnBoxOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp,
         int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
@@ -66,6 +58,12 @@ private:
     UPROPERTY(EditAnywhere, Category = "WeaponProperties")
     float Damage = 20.0f;
 
+    UPROPERTY(EditAnywhere, Category = "WeaponProperties")
+    FVector BoxTraceExtent = FVector(5.f);
+
+    UPROPERTY(EditAnywhere, Category = "WeaponProperties")
+    bool bShowBoxDebug = false;
+
     UPROPERTY(VisibleAnywhere)
     USceneComponent* BoxTraceStart;
 
@@ -73,4 +71,12 @@ private:
     USceneComponent* BoxTraceEnd;
 
     EWeaponState WeaponState = EWeaponState::EWS_None;
+
+    void PlayEquipSound();
+    void DisableSphereCollision();
+    void ExecuteGetHit(FHitResult& BoxHit);
+    void BoxTrace(FHitResult& BoxHit);
+
+    bool ActorIsSameType(AActor* OtherActor);
+
 };

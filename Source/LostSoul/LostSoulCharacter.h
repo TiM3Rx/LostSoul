@@ -26,37 +26,39 @@ class ALostSoulCharacter : public ABaseCharacter
 public:
     ALostSoulCharacter();
 
+    virtual void GetHit_Implementation(const FVector& ImpactPoint) override;
+
     FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
     FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
     FORCEINLINE ECharacterState GetCharacterState() { return CharacterState; }
 
 protected:
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
     USpringArmComponent* CameraBoom;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
     UCameraComponent* FollowCamera;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
     UInputMappingContext* DefaultMappingContext;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
     UInputAction* JumpAction;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
     UInputAction* MoveAction;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
     UInputAction* LookAction;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
     UInputAction* InteractAction;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
     UInputAction* AttackAction;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
     UInputAction* EquipAction;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interact", meta = (AllowPrivateAccess = "true"))
@@ -65,42 +67,41 @@ protected:
     UPROPERTY(BlueprintReadOnly, Category = "Interact")
     AChest* LastInteractedChest;
 
-    void Move(const FInputActionValue& Value);
-    void Look(const FInputActionValue& Value);
-    void Interact(const FInputActionValue& Value);
-    void Equip(const FInputActionValue& Value);
-    void Attacking(const FInputActionValue& Value);
-    virtual void Attack() override;
-
-    void PlayEquipMontage(const FName SectionName);
-    virtual void PlayAttackMontage() override;
-
-    virtual void AttackEnd() override;
-
     UFUNCTION(BlueprintCallable)
     void Disarm();
 
     UFUNCTION(BlueprintCallable)
     void Arm();
-    
+
     UFUNCTION(BlueprintCallable)
     void FinishEquipping();
 
-    virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+    void Move(const FInputActionValue& Value);
+    void Look(const FInputActionValue& Value);
+    void Interact(const FInputActionValue& Value);
+    void Equip(const FInputActionValue& Value);
+    void PerformAttack(const FInputActionValue& Value);
+
+    void PlayEquipMontage(const FName SectionName);
+    
     virtual void BeginPlay();
+    virtual void Attack() override;
+    virtual void AttackEnd() override;
+    virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 private:
     UPROPERTY(EditDefaultsOnly, Category = "Montage")
     UAnimMontage* EquipMontage;
 
-    AActor* GetInteractableObject() const;
-
-    ECharacterState CharacterState = ECharacterState::ECS_Unequipped;
-
     UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
     EActionState ActionState = EActionState::EAS_Unoccupied;
 
+    ECharacterState CharacterState = ECharacterState::ECS_Unequipped;
+
+    AActor* GetInteractableObject() const;
+
     bool CanDisarm();
     bool CanArm();
+
     virtual bool CanAttack() override;
 };

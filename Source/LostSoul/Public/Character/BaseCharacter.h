@@ -21,25 +21,38 @@ public:
     ABaseCharacter();
     virtual void Tick(float DeltaTime) override;
 
-    UFUNCTION(BlueprintCallable)
-    void SetWeaponCollisionEnabled(ECollisionEnabled::Type CollisionEnabled);
-
-
 protected:
     virtual void BeginPlay() override;
 
-    virtual void Attack();
-    virtual bool CanAttack();
-    virtual void AttackEnd();
-    void DirectionalHitReact(const FVector& ImpactPoint);
-
-    virtual void PlayAttackMontage();
-    void PlayHitReactMontage(const FName SectionName);
-
-    virtual void Die();
-
     UPROPERTY(VisibleAnywhere, Category = "Weapon")
     ABaseWeapon* EquippedWeapon;
+
+    UPROPERTY(VisibleAnywhere, Category = "Components")
+    UAttributeComponent* Attributes;
+
+    UFUNCTION(BlueprintCallable)
+    virtual void AttackEnd();
+
+    UFUNCTION(BlueprintCallable)
+    void SetWeaponCollisionEnabled(ECollisionEnabled::Type CollisionEnabled);
+
+    virtual void Attack();
+    virtual void Die();
+    virtual void HandleDamage(float DamageAmount);
+    virtual bool CanAttack();
+
+    void DirectionalHitReact(const FVector& ImpactPoint);
+    void PlayHitReactMontage(const FName& SectionName);
+    void PlayHitSound(const FVector& ImpactPoint);
+    void PawnHitParticles(const FVector& ImpactPoint);
+    void DisableCapsule();
+
+    virtual int32 PlayAttackMontage();
+    virtual int32 PlayDeathMontage();
+
+    bool IsAlive();
+
+private:
 
     UPROPERTY(EditDefaultsOnly, Category = "Montage")
     UAnimMontage* AttackMontage;
@@ -50,13 +63,19 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "Montage")
     UAnimMontage* DeathMontage;
 
-    UPROPERTY(VisibleAnywhere, Category = "Components")
-    UAttributeComponent* Attributes;
+    UPROPERTY(EditAnywhere, Category = "Combat")
+    TArray<FName> AttackMontageSections;
+
+    UPROPERTY(EditAnywhere, Category = "Combat")
+    TArray<FName> DeathMontageSections;
 
     UPROPERTY(EditAnywhere, Category = "Sounds")
     USoundBase* HitSound;
 
     UPROPERTY(EditAnywhere, Category = "VFX")
     UParticleSystem* HitParticles;
-  
+
+    void PlayMontageSection(UAnimMontage* Montage, const FName& SectionName);
+
+    int32 PlayRandomMontageSection(UAnimMontage* Montage, const TArray<FName>& SectionNames);
 };

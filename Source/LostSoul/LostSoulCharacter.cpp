@@ -5,6 +5,7 @@
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
@@ -34,6 +35,11 @@ ALostSoulCharacter::ALostSoulCharacter()
     GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
     GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
 
+    GetMesh()->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
+    GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+    GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
+    GetMesh()->SetGenerateOverlapEvents(true);
+
     CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
     CameraBoom->SetupAttachment(RootComponent);
     CameraBoom->TargetArmLength = 400.0f;
@@ -42,6 +48,12 @@ ALostSoulCharacter::ALostSoulCharacter()
     FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
     FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
     FollowCamera->bUsePawnControlRotation = false;
+}
+
+void ALostSoulCharacter::GetHit_Implementation(const FVector& ImpactPoint)
+{
+    PlayHitSound(ImpactPoint);
+    PawnHitParticles(ImpactPoint);
 }
 
 void ALostSoulCharacter::BeginPlay()
@@ -114,7 +126,7 @@ void ALostSoulCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
         EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Triggered, this, &ALostSoulCharacter::Interact);
 
         // Attack
-        EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &ALostSoulCharacter::Attacking);
+        EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &ALostSoulCharacter::PerformAttack);
 
         // Equip
         EnhancedInputComponent->BindAction(EquipAction, ETriggerEvent::Triggered, this, &ALostSoulCharacter::Equip);
@@ -179,24 +191,23 @@ void ALostSoulCharacter::Interact(const FInputActionValue& Value)
             CharacterState = ECharacterState::ECS_EquippedOneHandedWeapon;
             EquippedWeapon = InteractedChest->GetSpawnedWeapon();
         }
-        /*InteractedChest->GetSpawnedWeapon()->SetOwner(this);
-        InteractedChest->GetSpawnedWeapon()->SetInstigator(this);*/
     }
     LastInteractedChest = nullptr;
 }
 
-void ALostSoulCharacter::Attacking(const FInputActionValue& Value)
-{
-    Attack();
-}
-
 void ALostSoulCharacter::Attack()
 {
+    Super::Attack();
     if (CanAttack())
     {
         PlayAttackMontage();
         ActionState = EActionState::EAS_Attacking;
     }
+}
+
+void ALostSoulCharacter::PerformAttack(const FInputActionValue& Value)
+{
+    Attack();
 }
 
 void ALostSoulCharacter::Equip(const FInputActionValue& Value)
@@ -213,23 +224,6 @@ void ALostSoulCharacter::Equip(const FInputActionValue& Value)
         CharacterState = ECharacterState::ECS_EquippedOneHandedWeapon;
         ActionState = EActionState::EAS_EquippingWeapon;
     }
-}
-
-void ALostSoulCharacter::PlayAttackMontage()
-{
-    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-    if (!AnimInstance && !AttackMontage) return;
-
-    AnimInstance->Montage_Play(AttackMontage);
-    const int32 Selection = FMath::RandRange(0, 1);
-    FName SectionName = FName();
-
-    switch (Selection)
-    {
-        case 0: SectionName = FName("Attack1"); break;
-        case 1: SectionName = FName("Attack2"); break;
-    }
-    AnimInstance->Montage_JumpToSection(SectionName, AttackMontage);
 }
 
 void ALostSoulCharacter::PlayEquipMontage(const FName SectionName)
