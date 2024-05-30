@@ -21,7 +21,13 @@ void ABaseCharacter::BeginPlay()
     Super::BeginPlay();
 }
 
-void ABaseCharacter::Attack() {}
+void ABaseCharacter::Attack()
+{
+    if (CombatTarget && CombatTarget->ActorHasTag(FName("Dead")))
+    {
+        CombatTarget = nullptr;
+    }
+}
 
 int32 ABaseCharacter::PlayAttackMontage()
 {
@@ -30,7 +36,23 @@ int32 ABaseCharacter::PlayAttackMontage()
 
 int32 ABaseCharacter::PlayDeathMontage()
 {
-    return PlayRandomMontageSection(DeathMontage, DeathMontageSections);
+    const int32 Selection = PlayRandomMontageSection(DeathMontage, DeathMontageSections);
+    TEnumAsByte<EDeathPose> Pose(Selection);
+    if (Pose < EDeathPose::EDP_MAX)
+    {
+        DeathPose = Pose;
+    }
+
+    return Selection;
+}
+
+void ABaseCharacter::StopAttackMontage()
+{
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    if (AnimInstance)
+    {
+        AnimInstance->Montage_Stop(0.25f, AttackMontage);
+    }
 }
 
 void ABaseCharacter::HandleDamage(float DamageAmount)
@@ -76,6 +98,11 @@ void ABaseCharacter::DisableCapsule()
     GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
+void ABaseCharacter::DisableMeshCollision()
+{
+    GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
 int32 ABaseCharacter::PlayRandomMontageSection(UAnimMontage* Montage, const TArray<FName>& SectionNames)
 {
     if (SectionNames.Num() <= 0) return -1;
@@ -100,7 +127,14 @@ void ABaseCharacter::PlayMontageSection(UAnimMontage* Montage, const FName& Sect
     }
 }
 
+void ABaseCharacter::PlayDodgeMontage()
+{
+    PlayMontageSection(DodgeMontage, FName("Default"));
+}
+
 void ABaseCharacter::AttackEnd() {}
+
+void ABaseCharacter::DodgeEnd() {}
 
 void ABaseCharacter::DirectionalHitReact(const FVector& ImpactPoint)
 {
@@ -134,7 +168,11 @@ void ABaseCharacter::DirectionalHitReact(const FVector& ImpactPoint)
     PlayHitReactMontage(Section);
 }
 
-void ABaseCharacter::Die() {}
+void ABaseCharacter::Die()
+{
+    Tags.Add(FName("Dead"));
+    PlayDeathMontage();
+}
 
 bool ABaseCharacter::IsAlive()
 {
@@ -155,3 +193,39 @@ void ABaseCharacter::SetWeaponCollisionEnabled(ECollisionEnabled::Type Collision
     }
 }
 
+FVector ABaseCharacter::GetTranslationWardTarget()
+{
+    if (CombatTarget == nullptr) return FVector();
+
+    const FVector CombatTargetLocation = CombatTarget->GetActorLocation();
+    const FVector Location = GetActorLocation();
+
+    FVector TargetToMe = (Location - CombatTargetLocation).GetSafeNormal();
+    TargetToMe *= WarpTargetDistance;
+
+    return CombatTargetLocation + TargetToMe;
+}
+
+FVector ABaseCharacter::GetRotationWardTarget()
+{
+    if (CombatTarget)
+    {
+        return CombatTarget->GetActorLocation();
+    }
+    return FVector();
+}
+
+void ABaseCharacter::GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter)
+{
+    if (IsAlive() && Hitter)
+    {
+        DirectionalHitReact(Hitter->GetActorLocation());
+    }
+    else
+    {
+        Die();
+    }
+
+    PlayHitSound(ImpactPoint);
+    PawnHitParticles(ImpactPoint);
+}

@@ -8,6 +8,7 @@
 #include "Perception/PawnSensingComponent.h"
 #include "Weapon/BaseWeapon.h"
 #include "Navigation/PathFollowingComponent.h"
+#include "Soul/Soul.h"
 
 AEnemy::AEnemy()
 {
@@ -53,10 +54,10 @@ bool AEnemy::InTargetRange(AActor* Target, double Radius)
 
 void AEnemy::PawnSeen(APawn* SeenPawn)
 {
-    const bool bShouldChaseTarget = !IsDead() &&                                        //
-                                    EnemyState != EEnemyState::EES_Chasing &&           //
-                                    EnemyState < EEnemyState::EES_Chasing &&            //
-                                    SeenPawn->ActorHasTag(FName("LostSoulCharacter"));  //
+    const bool bShouldChaseTarget = !IsDead() &&                                                                                 //
+                                    EnemyState != EEnemyState::EES_Chasing &&                                                    //
+                                    EnemyState < EEnemyState::EES_Chasing &&                                                     //
+                                    SeenPawn->ActorHasTag(FName("LostSoulCharacter")) && !SeenPawn->ActorHasTag(FName("Dead"));  //
 
     if (bShouldChaseTarget)
     {
@@ -68,9 +69,10 @@ void AEnemy::PawnSeen(APawn* SeenPawn)
 
 void AEnemy::Attack()
 {
-    EnemyState = EEnemyState::EES_Engaged;
     Super::Attack();
+    if (CombatTarget == nullptr) return;
 
+    EnemyState = EEnemyState::EES_Engaged;
     PlayAttackMontage();
 }
 
@@ -89,27 +91,31 @@ void AEnemy::HandleDamage(float DamageAmount)
     }
 }
 
-int32 AEnemy::PlayDeathMontage()
-{
-    const int32 Selection = Super::PlayDeathMontage();
-    TEnumAsByte<EDeathPose> Pose(Selection);
-    if (Pose < EDeathPose::EDP_MAX)
-    {
-        DeathPose = Pose;
-    }
-
-    return Selection;
-}
-
 void AEnemy::Die()
 {
+    Super::Die();
+
     EnemyState = EEnemyState::EES_Dead;
-    PlayDeathMontage();
     ClearAttackTimer();
     HideHealthBar();
     DisableCapsule();
     SetLifeSpan(DeathLifeSpan);
     GetCharacterMovement()->bOrientRotationToMovement = false;
+    SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
+    SpawnSoul();
+}
+
+void AEnemy::SpawnSoul()
+{
+    UWorld* World = GetWorld();
+    if (World && SoulClass && Attributes)
+    {
+        ASoul* SpawnedSoul = World->SpawnActor<ASoul>(SoulClass, GetActorLocation(), GetActorRotation());
+        if (SpawnedSoul)
+        {
+            SpawnedSoul->SetSouls(Attributes->GetSouls());
+        }
+    }
 }
 
 void AEnemy::AttackEnd()
@@ -312,29 +318,32 @@ void AEnemy::CheckCombatTarget()
     }
 }
 
-void AEnemy::GetHit_Implementation(const FVector& ImpactPoint)
+void AEnemy::GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter)
 {
-    // DrawDebugSphere(GetWorld(), ImpactPoint, 8.f, 12, FColor::Blue, false, 5.f);
-    ShowHealthBar();
+    Super::GetHit_Implementation(ImpactPoint, Hitter);
+    if (!IsDead()) ShowHealthBar();
+    ClearPatrolTimer();
+    ClearAttackTimer();
 
-    if (IsAlive())
-    {
-        DirectionalHitReact(ImpactPoint);
-    }
-    else
-    {
-        Die();
-    }
+    SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
 
-    PlayHitSound(ImpactPoint);
-    PawnHitParticles(ImpactPoint);
+    StopAttackMontage();
 }
 
 float AEnemy::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
     HandleDamage(Damage);
     CombatTarget = DamageCauser;
-    ChaseTarget();
+
+    if (IsInsideAttackRadius())
+    {
+        EnemyState = EEnemyState::EES_Attacking;
+    }
+    else if (IsOutsideAttackRadius())
+    {
+        ChaseTarget();
+    }
+
     return Damage;
 }
 

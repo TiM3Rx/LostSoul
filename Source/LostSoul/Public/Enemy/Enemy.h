@@ -26,13 +26,10 @@ public:
 
     virtual void Destroyed() override;
 
-    virtual void GetHit_Implementation(const FVector& ImpactPoint) override;
+    virtual void GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter) override;
 
 protected:
     virtual void BeginPlay() override;
-
-    UPROPERTY(BlueprintReadOnly)
-    TEnumAsByte<EDeathPose> DeathPose;
 
     UPROPERTY(BlueprintReadOnly)
     EEnemyState EnemyState = EEnemyState::EES_Patrolling;
@@ -42,7 +39,6 @@ protected:
     virtual void HandleDamage(float DamageAmount);
     virtual void Die() override;
     virtual void AttackEnd() override;
-    virtual int32 PlayDeathMontage() override;
 
 private:
     /* AI Behavior* */
@@ -66,9 +62,6 @@ private:
 
     UPROPERTY()
     class AAIController* EnemyController;
-
-    UPROPERTY()
-    AActor* CombatTarget;
 
     UPROPERTY(EditAnywhere)
     double CombatRadius = 1000.0f;
@@ -100,6 +93,9 @@ private:
     UPROPERTY(EditAnywhere, Category = "Combat")
     float DeathLifeSpan = 5.0f;
 
+    UPROPERTY(EditAnywhere, Category = "Combat")
+    TSubclassOf<class ASoul> SoulClass;
+
     UFUNCTION()
     void PawnSeen(APawn* SeenPawn);
 
@@ -116,12 +112,11 @@ private:
     void LoseInterest();
     void StartPatrolling();
     void ChaseTarget();
+    void SpawnSoul();
 
     void ClearPatrolTimer();
-
     void StartAttackTimer();
     void ClearAttackTimer();
-
     void PatrolTimerFinished();
     void MoveToTarget(AActor* Target);
 

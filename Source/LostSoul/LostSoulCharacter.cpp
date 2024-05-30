@@ -6,6 +6,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/AttributeComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
@@ -13,12 +14,17 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "Chest/Chest.h"
+#include "HUD/LSHUD.h"
+#include "HUD/LSOverlay.h"
 #include "Animation/AnimMontage.h"
+#include "Soul/Soul.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 ALostSoulCharacter::ALostSoulCharacter()
 {
+    PrimaryActorTick.bCanEverTick = true;
+
     GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
     bUseControllerRotationPitch = false;
@@ -50,10 +56,60 @@ ALostSoulCharacter::ALostSoulCharacter()
     FollowCamera->bUsePawnControlRotation = false;
 }
 
-void ALostSoulCharacter::GetHit_Implementation(const FVector& ImpactPoint)
+void ALostSoulCharacter::Tick(float DeltaTime) {
+    if (Attributes && LSOverlay)
+    {
+        Attributes->RegenStamina(DeltaTime);
+        LSOverlay->SetStaminaBarPercent(Attributes->GetStaminaPercent());
+    }
+}
+
+void ALostSoulCharacter::AddSouls(ASoul* Soul)
 {
-    PlayHitSound(ImpactPoint);
-    PawnHitParticles(ImpactPoint);
+    if (Attributes && LSOverlay)
+    {
+        Attributes->AddSouls(Soul->GetSouls());
+        LSOverlay->SetSouls(Attributes->GetSouls());
+    }
+}
+
+void ALostSoulCharacter::GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter)
+{
+    Super::GetHit_Implementation(ImpactPoint, Hitter);
+
+    SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
+    if (Attributes && Attributes->GetHealthPercent() > 0.f)
+    {
+        ActionState = EActionState::EAS_HitReaction;
+    }
+}
+
+float ALostSoulCharacter::TakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+    HandleDamage(Damage);
+    SetHUDHealth();
+    return Damage;
+}
+
+void ALostSoulCharacter::Jump()
+{
+    if (IsUnoccupied())
+    {
+        Super::Jump();
+    }
+}
+
+bool ALostSoulCharacter::IsUnoccupied()
+{
+    return ActionState == EActionState::EAS_Unoccupied;
+}
+
+void ALostSoulCharacter::SetHUDHealth()
+{
+    if (LSOverlay && Attributes)
+    {
+        LSOverlay->SetHealthBarPercent(Attributes->GetHealthPercent());
+    }
 }
 
 void ALostSoulCharacter::BeginPlay()
@@ -64,10 +120,38 @@ void ALostSoulCharacter::BeginPlay()
 
     if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
     {
-        if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
-                ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+        EnhancedInput(PlayerController);
+        InitializeLSOverlay(PlayerController);
+    }
+}
+
+void ALostSoulCharacter::Die()
+{
+    Super::Die();
+
+    ActionState = EActionState::EAS_Dead;
+    DisableMeshCollision();
+}
+
+void ALostSoulCharacter::EnhancedInput(APlayerController* PlayerController)
+{
+    if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
+            ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+    {
+        Subsystem->AddMappingContext(DefaultMappingContext, 0);
+    }
+}
+
+void ALostSoulCharacter::InitializeLSOverlay(APlayerController* PlayerController)
+{
+    if (ALSHUD* LSHUD = Cast<ALSHUD>(PlayerController->GetHUD()))
+    {
+        LSOverlay = LSHUD->GetLSOverlay();
+        if (LSOverlay && Attributes)
         {
-            Subsystem->AddMappingContext(DefaultMappingContext, 0);
+            LSOverlay->SetHealthBarPercent(Attributes->GetHealthPercent());
+            LSOverlay->SetStaminaBarPercent(1.f);
+            LSOverlay->SetSouls(0);
         }
     }
 }
@@ -113,7 +197,7 @@ void ALostSoulCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
     {
 
         // Jumping
-        EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+        EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ALostSoulCharacter::Jump);
         EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
         // Moving
@@ -130,6 +214,9 @@ void ALostSoulCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
         // Equip
         EnhancedInputComponent->BindAction(EquipAction, ETriggerEvent::Triggered, this, &ALostSoulCharacter::Equip);
+
+        // Dodge
+        EnhancedInputComponent->BindAction(DodgeAction, ETriggerEvent::Triggered, this, &ALostSoulCharacter::Dodge);
     }
     else
     {
@@ -187,7 +274,7 @@ void ALostSoulCharacter::Interact(const FInputActionValue& Value)
         {
             InteractedChest->Interaction();
             LastInteractedChest = InteractedChest;
-            
+
             CharacterState = ECharacterState::ECS_EquippedOneHandedWeapon;
             EquippedWeapon = InteractedChest->GetSpawnedWeapon();
         }
@@ -208,6 +295,29 @@ void ALostSoulCharacter::Attack()
 void ALostSoulCharacter::PerformAttack(const FInputActionValue& Value)
 {
     Attack();
+}
+
+void ALostSoulCharacter::Dodge(const FInputActionValue& Value)
+{
+    if (IsOccupied() || !HasEnoughStamina()) return;
+
+    PlayDodgeMontage();
+    ActionState = EActionState::EAS_Dodging;
+    if (Attributes && LSOverlay)
+    {
+        Attributes->UseStamina(Attributes->GetDodgeCost());
+        LSOverlay->SetStaminaBarPercent(Attributes->GetStaminaPercent());
+    }
+}
+
+bool ALostSoulCharacter::HasEnoughStamina()
+{
+    return Attributes && Attributes->GetStamina() > Attributes->GetDodgeCost();
+}
+
+bool ALostSoulCharacter::IsOccupied()
+{
+    return ActionState != EActionState::EAS_Unoccupied;
 }
 
 void ALostSoulCharacter::Equip(const FInputActionValue& Value)
@@ -240,12 +350,18 @@ void ALostSoulCharacter::AttackEnd()
     ActionState = EActionState::EAS_Unoccupied;
 }
 
+void ALostSoulCharacter::DodgeEnd()
+{
+    Super::DodgeEnd();
+    ActionState = EActionState::EAS_Unoccupied;
+}
+
 void ALostSoulCharacter::Disarm()
 {
     if (EquippedWeapon)
     {
         FAttachmentTransformRules TransformRules(EAttachmentRule::SnapToTarget, true);
-        EquippedWeapon->AttachToComponent(GetMesh(), TransformRules, FName("SpineSocket"));                       
+        EquippedWeapon->AttachToComponent(GetMesh(), TransformRules, FName("SpineSocket"));
         CharacterState = ECharacterState::ECS_Unequipped;
     }
 }
@@ -258,6 +374,11 @@ void ALostSoulCharacter::Arm()
 }
 
 void ALostSoulCharacter::FinishEquipping()
+{
+    ActionState = EActionState::EAS_Unoccupied;
+}
+
+void ALostSoulCharacter::HitReactEnd()
 {
     ActionState = EActionState::EAS_Unoccupied;
 }

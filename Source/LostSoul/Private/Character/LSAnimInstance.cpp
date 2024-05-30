@@ -25,5 +25,7 @@ void ULSAnimInstance::NativeUpdateAnimation(float DeltaTime)
         GroundSpeed = UKismetMathLibrary::VSizeXY(LostSoulCharacterMovement->Velocity);
         IsFalling = LostSoulCharacterMovement->IsFalling();
         CharacterState = LostSoulCharacter->GetCharacterState();
+        ActionState = LostSoulCharacter->GetActionState();
+        DeathPose = LostSoulCharacter->GetDeathPose();
     }
 }
