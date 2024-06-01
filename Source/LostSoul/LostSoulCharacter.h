@@ -103,6 +103,9 @@ protected:
     void PerformAttack(const FInputActionValue& Value);
     void Dodge(const FInputActionValue& Value);
 
+    void DoorInteraction(AActor* InteractableObject);
+    void ChestInteraction(AActor* InteractableObject);
+
     void PlayEquipMontage(const FName SectionName);
 
     bool HasEnoughStamina();
